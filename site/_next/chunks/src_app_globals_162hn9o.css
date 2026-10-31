@@ -9750,3 +9750,32 @@ button, input, select, textarea {
 }
 
 /*# sourceMappingURL=src_app_globals_162hn9o.css.map*/
+/* Partner logo displays */
+.pc-partner-logo-filled {
+  border: 1px solid var(--border);
+  background: #fff;
+  padding: 20px;
+}
+
+.pc-partner-logo-filled img {
+  max-height: 118px;
+  width: auto;
+  height: auto;
+  -o-object-fit: contain;
+  object-fit: contain;
+  display: block;
+}
+
+.pc-partner-tile-logo {
+  align-items: flex-start;
+}
+
+.pc-partner-tile-logo img {
+  width: 52px;
+  height: 52px;
+  -o-object-fit: contain;
+  object-fit: contain;
+  display: block;
+  margin-bottom: 14px;
+  border-radius: 10px;
+}
