@@ -1,0 +1,69 @@
+name: Build and deploy website to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Fetch and unpack site files
+        run: |
+          if [ ! -f site/index.html ]; then
+            echo "Site files not yet in repository — downloading the built package."
+            curl -fsSL --retry 3 -o /tmp/site.zip \
+              "https://cdn.omniultra.imagine.art/ceaed39a-684f-4da0-a1e9-ca9f91ee1c26/media/archive/6ca9713d423b49e4828d0d5b53d274eb/primecore-site-package.zip"
+            rm -rf /tmp/unz && mkdir -p /tmp/unz
+            unzip -q /tmp/site.zip -d /tmp/unz
+            rm -rf site && mkdir -p site
+            cp -R /tmp/unz/Primecore-Technologies-Website/. site/
+            touch site/.nojekyll
+            echo "Unpacked $(find site -type f | wc -l) files."
+          else
+            echo "Site files already present in repository."
+          fi
+
+      - name: Commit site files into the repository
+        run: |
+          if git ls-files --error-unmatch site/index.html >/dev/null 2>&1; then
+            echo "Already tracked — nothing to commit."
+          else
+            git config user.name "Primecore Website Bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add -A site
+            git commit -m "Add Primecore Technologies website files" || echo "Nothing to commit."
+            git push || echo "Push skipped."
+          fi
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
