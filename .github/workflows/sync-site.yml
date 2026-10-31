@@ -1,0 +1,70 @@
+name: Sync site package and deploy
+
+# Triggered by editing this file (bump PACKAGE_VERSION) or manually.
+# Downloads the built site package, writes it into site/, commits it,
+# then publishes to GitHub Pages.
+
+on:
+  push:
+    paths:
+      - '.github/workflows/sync-site.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  PACKAGE_VERSION: v2-zux-logo
+  PACKAGE_URL: https://cdn.omniultra.imagine.art/ceaed39a-684f-4da0-a1e9-ca9f91ee1c26/media/archive/95bc66ce1c3c40bc94e50cc0aa7be5be/primecore-site-package-v2.zip
+
+jobs:
+  sync-and-deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Download and unpack package
+        run: |
+          curl -fsSL --retry 3 -o /tmp/site.zip "$PACKAGE_URL"
+          rm -rf /tmp/unz && mkdir -p /tmp/unz
+          unzip -q /tmp/site.zip -d /tmp/unz
+          rm -rf site && mkdir -p site
+          cp -R /tmp/unz/Primecore-Technologies-Website/. site/
+          touch site/.nojekyll
+          echo "Unpacked $(find site -type f | wc -l) files."
+
+      - name: Commit into repository
+        run: |
+          git config user.name "Primecore Website Bot"
+          git config user.email "actions@users.noreply.github.com"
+          git add -A site
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Sync site package $PACKAGE_VERSION"
+            git push
+          fi
+
+      - name: Configure Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload site artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
